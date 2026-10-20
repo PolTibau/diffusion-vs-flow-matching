@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dfm"
+version = "0.1.0"
+description = "Diffusion models vs flow matching, from 2D toy data to colour images"
+requires-python = ">=3.10"
+dependencies = [
+    "torch",
+    "torchvision",
+    "diffusers",
+    "datasets",
+    "accelerate",
+    "huggingface_hub",
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "matplotlib",
+    "tqdm",
+    "imageio",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
