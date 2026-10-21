@@ -58,7 +58,7 @@ class Diffusion:
         the network's error by ~30 and the sample blows up. Clipping x0_hat to the data range
         (``clip=1.0`` for images in [-1, 1]) keeps it stable, as in Ho et al. (2020).
 
-        Returns the final samples and, if ``keep`` is given, ``keep`` intermediate states
+        Returns the final samples and, if ``keep`` is given, keep intermediate states
         from noise to data (for plots and GIFs).
         """
         x = torch.randn(shape, device=device)
@@ -81,8 +81,7 @@ class Diffusion:
 
     @torch.no_grad()
     def sample_ddim(self, model, shape, steps: int = 50, device="cpu", keep=None, clip=None):
-        """DDIM (Song et al. 2021) with eta = 0: deterministic, follows the probability-flow ODE.
-
+        """With eta = 0: deterministic, follows the probability-flow ODE.
         Uses the same network as DDPM, but only ``steps`` evaluations.
         """
         ks = torch.linspace(self.T - 1, 0, steps).round().long()
