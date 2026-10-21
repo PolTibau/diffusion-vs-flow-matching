@@ -48,8 +48,15 @@ class Diffusion:
         return F.mse_loss(model(self.add_noise(x0, k, eps), self._t(k)), eps)
 
     @torch.no_grad()
-    def sample_ddpm(self, model, shape, device="cpu", keep=None):
+    def sample_ddpm(self, model, shape, device="cpu", keep=None, clip=None):
         """Ancestral sampling: discretised reverse SDE, T stochastic steps.
+
+        Each step is written through the posterior q(x_{k-1} | x_k, x0_hat), where x0_hat is
+        the clean image predicted from eps. Without clipping this is exactly the update
+        x_{k-1} = (x_k - beta_k / sqrt(1 - abar_k) * eps) / sqrt(alpha_k) + sqrt(beta_k) z.
+        With the cosine schedule, alpha_k ~ 0.001 at the first step: that update multiplies
+        the network's error by ~30 and the sample blows up. Clipping x0_hat to the data range
+        (``clip=1.0`` for images in [-1, 1]) keeps it stable, as in Ho et al. (2020).
 
         Returns the final samples and, if ``keep`` is given, ``keep`` intermediate states
         from noise to data (for plots and GIFs).
@@ -61,7 +68,11 @@ class Diffusion:
             kk = torch.full((shape[0],), k, device=device)
             eps = model(x, self._t(kk))
             beta, alpha, abar = self.betas[k], self.alphas[k], self.abar[k]
-            x = (x - beta / (1 - abar).sqrt() * eps) / alpha.sqrt()
+            abar_prev = self.abar[k - 1] if k > 0 else torch.tensor(1.0)
+            x0 = (x - (1 - abar).sqrt() * eps) / abar.sqrt()
+            if clip is not None:
+                x0 = x0.clamp(-clip, clip)
+            x = (abar_prev.sqrt() * beta * x0 + alpha.sqrt() * (1 - abar_prev) * x) / (1 - abar)
             if k > 0:
                 x = x + beta.sqrt() * torch.randn_like(x)
             if i + 1 in save_at:
